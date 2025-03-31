@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COSMIC CHAOS: UFO DESTROYER</title>
+    <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+    <div id="loading-screen">
+        <div id="game-title">COSMIC CHAOS: UFO DESTROYER</div>
+        <div class="blink">LOADING INTERGALACTIC SYSTEMS...</div>
+        <div id="loading-bar-container">
+            <div id="loading-bar"></div>
+        </div>
+    </div>
+
+    <div id="explosion-flash"></div>
+
+    <div id="ui-container">
+        <div id="hud">
+            <div>SPEED: <span id="speed">0</span> LIGHT-UNITS</div>
+            <div>SHIELDS: <span id="shields">100</span>%</div>
+            <div>BOMBS: <span id="bombs">3</span></div>
+            <div>PLANETS DESTROYED: <span id="destroyed">0</span></div>
+            <div>RESOURCES: <span id="resources">0</span></div>
+            <div>COORDINATES: <span id="coordinates">0,0,0</span></div>
+            <div>SECTOR: <span id="sector">ALPHA-1</span></div>
+        </div>
+        
+        <div id="boost-meter">
+            <div id="boost-meter-fill"></div>
+        </div>
+        
+        <div id="minimap">
+            <div id="minimap-dots"></div>
+        </div>
+        
+        <div id="targeting">
+            <div id="targeting-inner"></div>
+            <div id="targeting-outer"></div>
+            <div id="targeting-lines">
+                <div class="targeting-line horizontal"></div>
+                <div class="targeting-line vertical"></div>
+            </div>
+        </div>
+        
+        <div id="instructions">
+            <div>WASD: MOVE</div>
+            <div>MOUSE: STEER/LOOK</div>
+            <div>SHIFT: BOOST (Watch fuel meter!)</div>
+            <div>SPACE: FIRE TRACTOR BEAM</div>
+            <div>B: PLACE BOMB (WHEN ON PLANET)</div>
+            <div>L: LAND (NEAR PLANET SURFACE)</div>
+            <div>ESC: TOGGLE TUTORIAL</div>
+        </div>
+        
+        <div id="planet-info">
+            <div>SCANNING...</div>
+            <div>NEAREST PLANET: <span id="planet-name">NONE</span></div>
+            <div>DISTANCE: <span id="planet-distance">∞</span> UNITS</div>
+            <div>COMPOSITION: <span id="planet-composition">UNKNOWN</span></div>
+            <div>STATUS: <span id="planet-status">INTACT</span></div>
+        </div>
+
+        <div id="destruction-rating">
+            <div>DESTRUCTION RATING</div>
+            <div>PLANET: <span id="destroyed-planet">NONE</span></div>
+            <div>EFFICIENCY: <span id="destruction-efficiency">0</span>%</div>
+            <div>RESOURCES COLLECTED: <span id="resources-collected">0</span></div>
+            <div>BONUS: <span id="destruction-bonus">NONE</span></div>
+        </div>
+
+        <div id="tutorial" class="hidden">
+            <h2>ALIEN PILOT MANUAL</h2>
+            <ul>
+                <li>Your mission is to explore and destroy procedurally generated planets</li>
+                <li>Navigate your UFO using WASD for movement and mouse for orientation</li>
+                <li>Press SHIFT to activate your boost drive for faster travel</li>
+                <li>Approach planets carefully - atmospheric entry causes turbulence</li>
+                <li>When near a planet surface, press L to land your craft</li>
+                <li>Your alien explorer will automatically deploy on landing</li>
+                <li>Control your alien with WASD and look around with the mouse</li>
+                <li>Press B to cycle through three different bomb sizes (1-3)</li>
+                <li>Press P to place a bomb at your current location</li>
+                <li>Return to your ship to escape before detonation</li>
+                <li>Use your tractor beam (SPACE) to collect resources from debris</li>
+                <li>Planet cores yield more valuable resources</li>
+                <li>Look for wormholes to discover new galaxies</li>
+                <li>Beware of planetary defense systems</li>
+            </ul>
+            <button id="tutorial-close" onclick="window.gameApp.hideTutorial()">CONTINUE MISSION</button>
+        </div>
+        
+        <div id="orientation-indicator">
+            <div id="orientation-h-line"></div>
+            <div id="orientation-v-line"></div>
+            <div id="orientation-center"></div>
+            <div id="orientation-dot"></div>
+        </div>
+        
+        <div id="message-box"></div>
+
+        <div id="bomb-size-indicator">BOMB SIZE: <span id="current-bomb-size">1</span></div>
+    </div>
+
+    <!-- External libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+
+    <!-- Main application script -->
+    <script type="module" src="../js/app.js"></script>
+</body>
+</html> 
