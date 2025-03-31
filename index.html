@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>COSMIC CHAOS: UFO DESTROYER</title>
     <style>
         body {
@@ -11,6 +11,7 @@
             font-family: 'Courier New', monospace;
             color: #0ff;
             background-color: #000;
+            touch-action: none; /* Prevent browser default touch behaviors */
         }
         canvas {
             display: block;
@@ -240,28 +241,116 @@
             border-radius: 10px;
             width: 60%;
             max-width: 800px;
+            max-height: 80vh; /* Limit height on all devices */
+            overflow-y: auto; /* Enable scrolling */
             z-index: 500;
         }
         #tutorial h2 {
             text-align: center;
             color: #0ff;
+            font-size: 24px;
+            margin-top: 0;
         }
         #tutorial ul {
             margin-left: 20px;
+            padding-right: 10px;
         }
         #tutorial-close {
             display: block;
             margin: 20px auto 0;
-            padding: 10px 20px;
-            background-color: rgba(0, 255, 255, 0.2);
+            padding: 15px 30px;
+            background-color: rgba(0, 255, 255, 0.3);
             color: #0ff;
             border: 1px solid #0ff;
             border-radius: 5px;
             cursor: pointer;
             pointer-events: auto;
+            font-size: 18px;
+            font-weight: bold;
+            position: sticky;
+            bottom: 0;
+            width: 80%;
         }
         #tutorial-close:hover {
-            background-color: rgba(0, 255, 255, 0.4);
+            background-color: rgba(0, 255, 255, 0.5);
+        }
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            #tutorial {
+                width: 85%;
+                max-height: 70vh;
+                padding: 15px;
+            }
+            #tutorial h2 {
+                font-size: 20px;
+                margin-bottom: 10px;
+            }
+            #tutorial ul {
+                margin-left: 10px;
+                font-size: 14px;
+            }
+            #tutorial li {
+                margin-bottom: 8px;
+            }
+            #tutorial-close {
+                padding: 15px 0;
+                margin: 15px auto 5px;
+                font-size: 16px;
+                width: 100%;
+            }
+        }
+        /* Small mobile screens */
+        @media (max-width: 480px) {
+            #tutorial {
+                width: 90%;
+                max-height: 60vh;
+                padding: 10px;
+            }
+            #tutorial h2 {
+                font-size: 18px;
+            }
+            #tutorial ul {
+                padding-left: 20px;
+                margin-left: 0;
+            }
+            #tutorial-close {
+                margin-bottom: 0;
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 80%;
+                z-index: 501;
+            }
+        }
+        /* Tutorial header styles */
+        .tutorial-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            position: sticky;
+            top: 0;
+            background-color: rgba(0, 0, 0, 0.9);
+            padding-bottom: 10px;
+            z-index: 10;
+        }
+        .tutorial-x {
+            background-color: rgba(255, 0, 0, 0.4);
+            color: white;
+            border: 1px solid #ff4444;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 0;
+        }
+        .tutorial-x:hover {
+            background-color: rgba(255, 0, 0, 0.6);
         }
         .hidden {
             display: none !important;
@@ -470,7 +559,10 @@
         </div>
 
         <div id="tutorial" class="hidden">
-            <h2>ALIEN PILOT MANUAL</h2>
+            <div class="tutorial-header">
+                <h2>ALIEN PILOT MANUAL</h2>
+                <button class="tutorial-x" onclick="hideTutorial()">✕</button>
+            </div>
             <ul>
                 <li>Your mission is to explore and destroy procedurally generated planets</li>
                 <li>Navigate your UFO using WASD for movement and mouse for orientation</li>
@@ -4036,6 +4128,9 @@
             // Initialize active players list
             updateActivePlayers();
             
+            // Initialize tutorial events
+            initializeTutorialEvents();
+            
             // Start animation loop
             animate();
         }
@@ -4048,6 +4143,75 @@
         function hideTutorial() {
             document.getElementById('tutorial').classList.add('hidden');
             gameState.isTutorialVisible = false;
+        }
+        
+        // Initialize tutorial touch events
+        function initializeTutorialEvents() {
+            const tutorial = document.getElementById('tutorial');
+            
+            // Add keyboard escape key handler
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && gameState.isTutorialVisible) {
+                    hideTutorial();
+                }
+            });
+            
+            // Make sure mobile devices can see the close button
+            if ('ontouchstart' in window) {
+                // Add extra close buttons for mobile
+                const closeButton = document.getElementById('tutorial-close');
+                if (closeButton) {
+                    closeButton.style.fontSize = '20px';
+                    closeButton.style.padding = '20px 0';
+                }
+                
+                // Set tutorial content max-height to ensure button visibility
+                const tutorialContent = tutorial.querySelector('ul');
+                if (tutorialContent) {
+                    tutorialContent.style.maxHeight = '50vh';
+                    tutorialContent.style.overflowY = 'auto';
+                }
+                
+                // Add handler for orientation changes
+                window.addEventListener('resize', adjustTutorialForMobile);
+                window.addEventListener('orientationchange', function() {
+                    // Some devices need a slight delay after orientation change
+                    setTimeout(adjustTutorialForMobile, 300);
+                });
+                
+                // Initial adjustment
+                adjustTutorialForMobile();
+            }
+        }
+        
+        // Adjust tutorial for mobile screens
+        function adjustTutorialForMobile() {
+            const tutorial = document.getElementById('tutorial');
+            const closeButton = document.getElementById('tutorial-close');
+            
+            if (!tutorial || !closeButton) return;
+            
+            // Check if we're in portrait or landscape
+            const isPortrait = window.innerHeight > window.innerWidth;
+            
+            if (isPortrait) {
+                // Portrait mode - make tutorial taller but ensure button is visible
+                tutorial.style.maxHeight = '70vh';
+                closeButton.style.position = 'fixed';
+                closeButton.style.bottom = '20px';
+                closeButton.style.left = '50%';
+                closeButton.style.transform = 'translateX(-50%)';
+                closeButton.style.width = '80%';
+                closeButton.style.zIndex = '501';
+            } else {
+                // Landscape mode - make button part of the scrollable content
+                tutorial.style.maxHeight = '80vh';
+                closeButton.style.position = 'sticky';
+                closeButton.style.bottom = '0';
+                closeButton.style.left = 'auto';
+                closeButton.style.transform = 'none';
+                closeButton.style.width = '100%';
+            }
         }
         
         function showAlienReturnAnimation() {
