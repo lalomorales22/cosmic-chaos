@@ -54,6 +54,7 @@ class GameState {
         this.minimapUpdateTimer = 0;
         this.minimapUpdateInterval = Config.ui.minimapUpdateInterval;
         this.score = 0;
+        this.screenWidgetsHidden = false; // Track if screen widgets are hidden
         
         // Ship upgrades system
         this.upgrades = {
