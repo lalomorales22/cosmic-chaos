@@ -18,6 +18,9 @@ class MobileControls {
         this.joystickSize = 100;
         this.deadzone = 0.2;
         
+        // Add flag to track if we've set up the global touch handling
+        this.globalTouchHandlersAdded = false;
+        
         // Wait for DOM to be loaded before checking mobile device
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.checkMobileDevice());
@@ -34,6 +37,9 @@ class MobileControls {
         if (this.isMobileDevice) {
             // Wrap in a try-catch to prevent uncaught exceptions
             try {
+                // Setup global touch handlers to improve joystick handling
+                this.setupGlobalTouchHandlers();
+                
                 // Delay the initialization to ensure DOM is fully loaded
                 setTimeout(() => {
                     this.enable();
@@ -50,6 +56,72 @@ class MobileControls {
                 this.updateJoystickPositions();
             }
         });
+    }
+    
+    // Setup global touch handlers to prevent unwanted behavior
+    setupGlobalTouchHandlers() {
+        if (this.globalTouchHandlersAdded) return;
+        
+        // Prevent default on touchmove to disable scrolling while using joysticks
+        document.addEventListener('touchmove', (e) => {
+            // Only prevent default if a joystick is active
+            if ((this.moveJoystick && this.moveJoystick.active) || 
+                (this.lookJoystick && this.lookJoystick.active)) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        // Handle case where touch ends outside the joystick
+        document.addEventListener('touchend', (e) => {
+            // Check if we have active joysticks but the touch ended outside them
+            if (this.moveJoystick && this.moveJoystick.active) {
+                let moveJoystickTouchFound = false;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const touch = e.changedTouches[i];
+                    const rect = this.moveJoystick.container.getBoundingClientRect();
+                    if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                        touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                        moveJoystickTouchFound = true;
+                        break;
+                    }
+                }
+                
+                // If no touch was found on the move joystick, reset it
+                if (!moveJoystickTouchFound) {
+                    this.resetJoystick(this.moveJoystick);
+                    this.moveJoystick.active = false;
+                    // Reset input state
+                    inputHandler.inputState.moveForward = false;
+                    inputHandler.inputState.moveBackward = false;
+                    inputHandler.inputState.moveLeft = false;
+                    inputHandler.inputState.moveRight = false;
+                }
+            }
+            
+            if (this.lookJoystick && this.lookJoystick.active) {
+                let lookJoystickTouchFound = false;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const touch = e.changedTouches[i];
+                    const rect = this.lookJoystick.container.getBoundingClientRect();
+                    if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                        touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                        lookJoystickTouchFound = true;
+                        break;
+                    }
+                }
+                
+                // If no touch was found on the look joystick, reset it
+                if (!lookJoystickTouchFound) {
+                    this.resetJoystick(this.lookJoystick);
+                    this.lookJoystick.active = false;
+                    // Reset input state
+                    inputHandler.inputState.mouseX = 0;
+                    inputHandler.inputState.mouseY = 0;
+                }
+            }
+        });
+        
+        this.globalTouchHandlersAdded = true;
     }
     
     // Manually enable mobile controls (useful for testing on desktop)
@@ -100,6 +172,7 @@ class MobileControls {
         joysticksContainer.style.height = '200px';
         joysticksContainer.style.pointerEvents = 'auto';
         joysticksContainer.style.zIndex = '500';
+        joysticksContainer.style.touchAction = 'none'; // Disable browser touch actions
         
         // Create left joystick (WASD movement)
         const moveJoystickContainer = document.createElement('div');
@@ -112,6 +185,8 @@ class MobileControls {
         moveJoystickContainer.style.background = 'rgba(0, 255, 255, 0.2)';
         moveJoystickContainer.style.border = '2px solid #0ff';
         moveJoystickContainer.style.borderRadius = '50%';
+        moveJoystickContainer.style.zIndex = '510'; // Ensure stacking order
+        moveJoystickContainer.style.touchAction = 'none'; // Disable browser touch actions
         
         const moveJoystick = document.createElement('div');
         moveJoystick.id = 'move-joystick';
@@ -125,6 +200,7 @@ class MobileControls {
         moveJoystick.style.borderRadius = '50%';
         moveJoystick.style.transform = 'translate(-50%, -50%)';
         moveJoystick.style.transition = 'transform 0.1s';
+        moveJoystick.style.pointerEvents = 'none'; // Let touch events go to the container
         
         moveJoystickContainer.appendChild(moveJoystick);
         joysticksContainer.appendChild(moveJoystickContainer);
@@ -140,6 +216,8 @@ class MobileControls {
         lookJoystickContainer.style.background = 'rgba(0, 255, 255, 0.2)';
         lookJoystickContainer.style.border = '2px solid #0ff';
         lookJoystickContainer.style.borderRadius = '50%';
+        lookJoystickContainer.style.zIndex = '510'; // Ensure stacking order
+        lookJoystickContainer.style.touchAction = 'none'; // Disable browser touch actions
         
         const lookJoystick = document.createElement('div');
         lookJoystick.id = 'look-joystick';
@@ -153,6 +231,7 @@ class MobileControls {
         lookJoystick.style.borderRadius = '50%';
         lookJoystick.style.transform = 'translate(-50%, -50%)';
         lookJoystick.style.transition = 'transform 0.1s';
+        lookJoystick.style.pointerEvents = 'none'; // Let touch events go to the container
         
         lookJoystickContainer.appendChild(lookJoystick);
         joysticksContainer.appendChild(lookJoystickContainer);
@@ -249,7 +328,7 @@ class MobileControls {
                 // Convert joystick position to mouse look
                 // Scale to appropriate range
                 inputHandler.inputState.mouseX = x * 0.5; // Reduced sensitivity for better control
-                inputHandler.inputState.mouseY = y * 0.5;
+                inputHandler.inputState.mouseY = y * 0.1;
             });
         }
     }
@@ -265,53 +344,96 @@ class MobileControls {
         const container = joystick.container;
         const stick = joystick.stick;
         
+        // Store the touch identifier to track the correct touch point
+        let touchId = null;
+        
         // Touch start
         container.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            const touch = e.touches[0];
-            const rect = container.getBoundingClientRect();
-            
-            // Calculate the relative position within the joystick container
-            const x = touch.clientX - rect.left - rect.width / 2;
-            const y = touch.clientY - rect.top - rect.height / 2;
-            
-            this.moveJoystickStick(joystick, x, y);
-            joystick.active = true;
+            // Only process if no active touch or this joystick isn't already active
+            if (!joystick.active) {
+                // Find first touch on this container
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    const touch = e.changedTouches[i];
+                    const rect = container.getBoundingClientRect();
+                    
+                    // Calculate the relative position within the joystick container
+                    const x = touch.clientX - rect.left - rect.width / 2;
+                    const y = touch.clientY - rect.top - rect.height / 2;
+                    
+                    // Store the touch identifier
+                    touchId = touch.identifier;
+                    
+                    this.moveJoystickStick(joystick, x, y);
+                    joystick.active = true;
+                    break; // Only use the first valid touch
+                }
+            }
         });
         
         // Touch move
         container.addEventListener('touchmove', (e) => {
-            if (!joystick.active) return;
             e.preventDefault();
+            if (!joystick.active) return;
             
-            const touch = e.touches[0];
-            const rect = container.getBoundingClientRect();
-            
-            // Calculate the relative position within the joystick container
-            const x = touch.clientX - rect.left - rect.width / 2;
-            const y = touch.clientY - rect.top - rect.height / 2;
-            
-            this.moveJoystickStick(joystick, x, y);
+            // Find the touch with the matching identifier
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                
+                // Only process the touch point that started on this joystick
+                if (touch.identifier === touchId) {
+                    const rect = container.getBoundingClientRect();
+                    
+                    // Calculate the relative position within the joystick container
+                    const x = touch.clientX - rect.left - rect.width / 2;
+                    const y = touch.clientY - rect.top - rect.height / 2;
+                    
+                    this.moveJoystickStick(joystick, x, y);
+                    break;
+                }
+            }
         });
         
         // Touch end
         container.addEventListener('touchend', (e) => {
             e.preventDefault();
-            this.resetJoystick(joystick);
-            joystick.active = false;
             
-            // Call update with zeros to reset input
-            updateCallback(0, 0);
+            // Find the touch with the matching identifier
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                
+                // Only process the touch point that started on this joystick
+                if (touch.identifier === touchId) {
+                    this.resetJoystick(joystick);
+                    joystick.active = false;
+                    touchId = null;
+                    
+                    // Call update with zeros to reset input
+                    updateCallback(0, 0);
+                    break;
+                }
+            }
         });
         
         // Touch cancel
         container.addEventListener('touchcancel', (e) => {
             e.preventDefault();
-            this.resetJoystick(joystick);
-            joystick.active = false;
             
-            // Call update with zeros to reset input
-            updateCallback(0, 0);
+            // Find the touch with the matching identifier
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                
+                // Only process the touch point that started on this joystick
+                if (touch.identifier === touchId) {
+                    this.resetJoystick(joystick);
+                    joystick.active = false;
+                    touchId = null;
+                    
+                    // Call update with zeros to reset input
+                    updateCallback(0, 0);
+                    break;
+                }
+            }
         });
     }
     
@@ -382,6 +504,10 @@ class MobileControls {
         // Update joystick position
         joystick.stick.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
         
+        // Add visual feedback for active joystick
+        joystick.container.style.background = 'rgba(0, 255, 255, 0.4)'; // Brighter background
+        joystick.stick.style.boxShadow = '0 0 10px #0ff'; // Add glow effect
+        
         // Calculate normalized values (-1 to 1)
         const normalizedX = x / maxDistance;
         const normalizedY = y / maxDistance;
@@ -400,7 +526,7 @@ class MobileControls {
         } else if (joystick === this.lookJoystick) {
             // Look joystick (mouse)
             inputHandler.inputState.mouseX = normalizedX * 0.5; // Reduced sensitivity for better control
-            inputHandler.inputState.mouseY = normalizedY * 0.5;
+            inputHandler.inputState.mouseY = normalizedY * 0.1; // Even lower vertical sensitivity
         }
     }
     
@@ -412,6 +538,10 @@ class MobileControls {
         joystick.stick.style.transform = 'translate(-50%, -50%)';
         joystick.value.x = 0;
         joystick.value.y = 0;
+        
+        // Reset visual feedback
+        joystick.container.style.background = 'rgba(0, 255, 255, 0.2)'; // Original background
+        joystick.stick.style.boxShadow = 'none'; // Remove glow effect
     }
     
     // Update joystick positions (e.g., after orientation change)
