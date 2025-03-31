@@ -477,6 +477,147 @@
             color: #0ff;
             cursor: pointer;
         }
+        /* Widget minimize/expand functionality */
+        .widget {
+            position: relative;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 5px;
+            margin: -5px -5px 5px -5px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+        }
+        
+        .widget-title {
+            font-weight: bold;
+            margin: 0;
+        }
+        
+        .widget-toggle {
+            background: none;
+            border: none;
+            color: #0ff;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0 5px;
+            margin-left: 5px;
+            transition: transform 0.3s;
+        }
+        
+        .widget-toggle:hover {
+            color: #fff;
+        }
+        
+        .widget-content {
+            transition: max-height 0.3s ease;
+            max-height: 1000px; /* Large enough to contain content */
+            overflow: hidden;
+        }
+        
+        .widget.minimized .widget-content {
+            max-height: 0;
+        }
+        
+        .widget.minimized .widget-toggle {
+            transform: rotate(180deg);
+        }
+        
+        /* Toggle all button for mobile */
+        #toggle-all-widgets {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #0ff;
+            border: 1px solid #0ff;
+            border-radius: 5px;
+            padding: 8px 12px;
+            font-size: 16px;
+            z-index: 600;
+            cursor: pointer;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        #toggle-all-widgets:hover {
+            background-color: rgba(0, 255, 255, 0.2);
+        }
+        
+        /* Make toggle button more visible on mobile */
+        @media (max-width: 768px) {
+            #toggle-all-widgets {
+                font-size: 24px;
+                padding: 12px 16px;
+                background-color: rgba(0, 0, 0, 0.8);
+                border: 2px solid #0ff;
+                box-shadow: 0 0 8px #0ff;
+                top: 15px;
+                right: 15px;
+            }
+            
+            /* Hide text on mobile, show only icon */
+            #toggle-all-widgets .toggle-text {
+                display: none;
+            }
+        }
+        
+        /* Mobile-specific adjustments for widgets */
+        @media (max-width: 768px) {
+            .widget {
+                max-width: 95vw;
+                background-color: rgba(0, 0, 0, 0.7); /* Darker background on mobile */
+            }
+            
+            .widget-header {
+                padding: 10px;
+                background-color: rgba(0, 0, 0, 0.8);
+                border-radius: 5px;
+            }
+            
+            .widget-toggle {
+                font-size: 22px;
+                padding: 0 8px;
+                width: 40px;
+                height: 30px;
+                line-height: 30px;
+                text-align: center;
+            }
+            
+            /* Adjust specific widget positions on mobile */
+            #hud {
+                top: 10px;
+                left: 10px;
+                right: auto;
+                width: auto;
+                max-width: 70vw;
+            }
+            
+            #planet-info {
+                bottom: 10px !important;
+                right: 10px !important;
+                width: auto;
+                max-width: 80vw;
+            }
+            
+            #instructions {
+                bottom: 10px;
+                left: 10px;
+                max-width: 80vw;
+            }
+            
+            /* Default to minimized state for some widgets on mobile */
+            #instructions.auto-minimize {
+                max-height: 45px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -491,16 +632,22 @@
     <div id="explosion-flash"></div>
 
     <div id="ui-container">
-        <div id="hud">
-            <div>SHIP STATS:</div>
-            <div>Speed: <span id="speed">0.0</span> units/s</div>
-            <div>Shields: <span id="shields">100</span>%</div>
-            <div>Bombs: <span id="bombs">3</span></div>
-            <div>Planets Destroyed: <span id="destroyed">0</span></div>
-            <div>Resources: <span id="resources">0</span></div>
-            <div>Coordinates: <span id="coordinates">0,0,0</span></div>
-            <div>Sector: <span id="sector">ALPHA-1</span></div>
-            <div>Score: <span id="score">0</span></div>
+        <button id="toggle-all-widgets" onclick="toggleAllWidgets()"><span class="toggle-icon">🔽</span><span class="toggle-text">ALL WIDGETS</span></button>
+        <div id="hud" class="widget">
+            <div class="widget-header">
+                <div class="widget-title">SHIP STATS</div>
+                <button class="widget-toggle" onclick="toggleWidget('hud')">▼</button>
+            </div>
+            <div class="widget-content">
+                <div>Speed: <span id="speed">0.0</span> units/s</div>
+                <div>Shields: <span id="shields">100</span>%</div>
+                <div>Bombs: <span id="bombs">3</span></div>
+                <div>Planets Destroyed: <span id="destroyed">0</span></div>
+                <div>Resources: <span id="resources">0</span></div>
+                <div>Coordinates: <span id="coordinates">0,0,0</span></div>
+                <div>Sector: <span id="sector">ALPHA-1</span></div>
+                <div>Score: <span id="score">0</span></div>
+            </div>
         </div>
         
         <div id="boost-meter">
@@ -520,34 +667,46 @@
             </div>
         </div>
         
-        <div id="instructions">
-            <h3>UFO CONTROLS:</h3>
-            <div>WASD: MOVE UFO</div>
-            <div>MOUSE: STEER UFO</div>
-            <div>SHIFT: BOOST (Watch fuel meter!)</div>
-            <div>SPACE: TRACTOR BEAM</div>
-            <div>L: LAND NEAR PLANET</div>
-            
-            <h3>ALIEN CONTROLS:</h3>
-            <div>WASD: WALK</div>
-            <div>MOUSE: LOOK</div>
-            <div>B: CYCLE BOMB SIZE (1-3)</div>
-            <div>P: PLACE BOMB</div>
-            <div>E: RETURN TO SHIP</div>
-            
-            <h3>GENERAL:</h3>
-            <div>ESC: TOGGLE TUTORIAL</div>
+        <div id="instructions" class="widget">
+            <div class="widget-header">
+                <div class="widget-title">CONTROLS</div>
+                <button class="widget-toggle" onclick="toggleWidget('instructions')">▼</button>
+            </div>
+            <div class="widget-content">
+                <h3>UFO CONTROLS:</h3>
+                <div>WASD: MOVE UFO</div>
+                <div>MOUSE: STEER UFO</div>
+                <div>SHIFT: BOOST (Watch fuel meter!)</div>
+                <div>SPACE: TRACTOR BEAM</div>
+                <div>L: LAND NEAR PLANET</div>
+                
+                <h3>ALIEN CONTROLS:</h3>
+                <div>WASD: WALK</div>
+                <div>MOUSE: LOOK</div>
+                <div>B: CYCLE BOMB SIZE (1-3)</div>
+                <div>P: PLACE BOMB</div>
+                <div>E: RETURN TO SHIP</div>
+                
+                <h3>GENERAL:</h3>
+                <div>ESC: TOGGLE TUTORIAL</div>
+            </div>
         </div>
         
         <div id="alien-symbols">
             ⨁⌬⏣⎔⏱⌭⌖⌘⌬⨂</div>
         
-        <div id="planet-info">
-            <div>SCANNING...</div>
-            <div>NEAREST PLANET: <span id="nearest-planet">NONE</span></div>
-            <div>DISTANCE: <span id="planet-distance">∞</span> UNITS</div>
-            <div>COMPOSITION: <span id="planet-composition">UNKNOWN</span></div>
-            <div>STATUS: <span id="planet-status">INTACT</span></div>
+        <div id="planet-info" class="widget">
+            <div class="widget-header">
+                <div class="widget-title">PLANET SCANNER</div>
+                <button class="widget-toggle" onclick="toggleWidget('planet-info')">▼</button>
+            </div>
+            <div class="widget-content">
+                <div>SCANNING...</div>
+                <div>NEAREST PLANET: <span id="nearest-planet">NONE</span></div>
+                <div>DISTANCE: <span id="planet-distance">∞</span> UNITS</div>
+                <div>COMPOSITION: <span id="planet-composition">UNKNOWN</span></div>
+                <div>STATUS: <span id="planet-status">INTACT</span></div>
+            </div>
         </div>
 
         <div id="destruction-rating">
@@ -4131,6 +4290,9 @@
             // Initialize tutorial events
             initializeTutorialEvents();
             
+            // Initialize widget states
+            initWidgetStates();
+            
             // Start animation loop
             animate();
         }
@@ -4140,9 +4302,103 @@
         // Close tutorial button function
         window.hideTutorial = hideTutorial;
         
+        // Widget visibility toggle function
+        window.toggleWidget = toggleWidget;
+        window.toggleAllWidgets = toggleAllWidgets;
+        
+        function toggleWidget(widgetId) {
+            const widget = document.getElementById(widgetId);
+            if (widget) {
+                widget.classList.toggle('minimized');
+                
+                // Save widget state to localStorage
+                const isMinimized = widget.classList.contains('minimized');
+                localStorage.setItem(`${widgetId}-minimized`, isMinimized);
+            }
+        }
+        
+        function toggleAllWidgets() {
+            const widgets = ['hud', 'planet-info', 'instructions'];
+            const toggleButton = document.getElementById('toggle-all-widgets');
+            const toggleIcon = toggleButton ? toggleButton.querySelector('.toggle-icon') : null;
+            
+            // Check if all widgets are minimized
+            const allMinimized = widgets.every(id => {
+                const widget = document.getElementById(id);
+                return widget && widget.classList.contains('minimized');
+            });
+            
+            // Toggle all widgets
+            widgets.forEach(widgetId => {
+                const widget = document.getElementById(widgetId);
+                if (widget) {
+                    // If all are minimized, expand all; otherwise minimize all
+                    if (allMinimized) {
+                        widget.classList.remove('minimized');
+                        if (toggleIcon) toggleIcon.textContent = '🔽';
+                    } else {
+                        widget.classList.add('minimized');
+                        if (toggleIcon) toggleIcon.textContent = '🔼';
+                    }
+                    
+                    // Save widget state
+                    localStorage.setItem(`${widgetId}-minimized`, !allMinimized);
+                }
+            });
+        }
+        
+        // Initialize widget states from localStorage
+        function initWidgetStates() {
+            const widgets = ['hud', 'planet-info', 'instructions'];
+            const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            widgets.forEach(widgetId => {
+                const widget = document.getElementById(widgetId);
+                if (widget) {
+                    // Get saved state
+                    let isMinimized = localStorage.getItem(`${widgetId}-minimized`) === 'true';
+                    
+                    // On mobile, default certain widgets to minimized if no saved state
+                    if (isMobile && localStorage.getItem(`${widgetId}-minimized`) === null) {
+                        if (widgetId === 'instructions' || widgetId === 'planet-info') {
+                            isMinimized = true;
+                        }
+                    }
+                    
+                    // Apply state
+                    if (isMinimized) {
+                        widget.classList.add('minimized');
+                    }
+                }
+            });
+            
+            // Set toggle-all button initial state
+            const toggleButton = document.getElementById('toggle-all-widgets');
+            if (toggleButton) {
+                const toggleIcon = toggleButton.querySelector('.toggle-icon');
+                const allMinimized = widgets.every(id => {
+                    const widget = document.getElementById(id);
+                    return widget && widget.classList.contains('minimized');
+                });
+                
+                if (toggleIcon) {
+                    toggleIcon.textContent = allMinimized ? '🔼' : '🔽';
+                }
+            }
+        }
+        
+        // Tutorial auto-close timer
+        let tutorialTimerId = null;
+        
         function hideTutorial() {
             document.getElementById('tutorial').classList.add('hidden');
             gameState.isTutorialVisible = false;
+            
+            // Clear the auto-close timer if it exists
+            if (tutorialTimerId) {
+                clearTimeout(tutorialTimerId);
+                tutorialTimerId = null;
+            }
         }
         
         // Initialize tutorial touch events
@@ -4182,6 +4438,62 @@
                 // Initial adjustment
                 adjustTutorialForMobile();
             }
+            
+            // Add countdown timer element to tutorial
+            const timerElement = document.createElement('div');
+            timerElement.id = 'tutorial-timer';
+            timerElement.style.position = 'absolute';
+            timerElement.style.top = '10px';
+            timerElement.style.left = '10px';
+            timerElement.style.color = '#ffffff';
+            timerElement.style.fontSize = '18px';
+            timerElement.style.fontWeight = 'bold';
+            timerElement.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+            timerElement.style.padding = '5px 10px';
+            timerElement.style.borderRadius = '5px';
+            timerElement.style.border = '1px solid #0ff';
+            timerElement.style.textShadow = '0 0 5px #0ff';
+            timerElement.style.zIndex = '15';
+            timerElement.textContent = 'Auto-close: 10s';
+            
+            // Insert timer before the X button
+            const tutorialHeader = tutorial.querySelector('.tutorial-header');
+            if (tutorialHeader) {
+                tutorialHeader.appendChild(timerElement);
+            } else {
+                tutorial.insertBefore(timerElement, tutorial.firstChild);
+            }
+            
+            // Start auto-close timer (10 seconds)
+            startTutorialAutoCloseTimer();
+        }
+        
+        // Function to start the tutorial auto-close timer
+        function startTutorialAutoCloseTimer() {
+            // Clear any existing timer
+            if (tutorialTimerId) {
+                clearTimeout(tutorialTimerId);
+            }
+            
+            let timeLeft = 10;
+            const timerElement = document.getElementById('tutorial-timer');
+            
+            // Update timer display every second
+            const updateTimer = () => {
+                timeLeft--;
+                if (timerElement) {
+                    timerElement.textContent = `Auto-close: ${timeLeft}s`;
+                }
+                
+                if (timeLeft > 0) {
+                    tutorialTimerId = setTimeout(updateTimer, 1000);
+                } else {
+                    hideTutorial();
+                }
+            };
+            
+            // Start countdown
+            tutorialTimerId = setTimeout(updateTimer, 1000);
         }
         
         // Adjust tutorial for mobile screens
