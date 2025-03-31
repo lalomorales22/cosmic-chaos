@@ -282,7 +282,8 @@ class MobileControls {
             { id: 'land-button', text: 'LAND/TAKE OFF', action: 'land' },
             { id: 'tractor-beam-button', text: 'TRACTOR BEAM', action: 'tractorBeam' },
             { id: 'alien-button', text: 'ALIEN MODE', action: 'alienMode' },
-            { id: 'bomb-button', text: 'PLACE BOMB', action: 'placeBomb' }
+            { id: 'bomb-button', text: 'PLACE BOMB', action: 'placeBomb' },
+            { id: 'return-button', text: 'RETURN TO SHIP', action: 'returnToShip' }
         ];
         
         buttons.forEach(button => {
@@ -298,6 +299,16 @@ class MobileControls {
             buttonElement.style.width = '120px';
             buttonElement.style.fontSize = '14px';
             
+            // Hide the return button by default - only shown in alien mode
+            if (button.id === 'return-button') {
+                buttonElement.style.display = 'none';
+                
+                // Add special highlight to make it more noticeable
+                buttonElement.style.backgroundColor = 'rgba(0, 100, 255, 0.5)';
+                buttonElement.style.border = '2px solid #0ff';
+                buttonElement.style.boxShadow = '0 0 10px #0ff';
+            }
+            
             // Add button handlers
             this.setupButtonHandlers(buttonElement, button.action);
             
@@ -306,6 +317,43 @@ class MobileControls {
         });
         
         uiContainer.appendChild(buttonsContainer);
+        
+        // Add a listener to show/hide the return button based on alien mode
+        this.updateButtonVisibility();
+    }
+    
+    // Update button visibility based on game state
+    updateButtonVisibility() {
+        // Set up a MutationObserver to monitor changes to alienMode
+        const observer = new MutationObserver((mutations) => {
+            // Update return button visibility
+            const returnButton = document.getElementById('return-button');
+            if (returnButton) {
+                returnButton.style.display = gameState.isAlienMode ? 'block' : 'none';
+            }
+        });
+        
+        // Start observing gameState for changes
+        this.updateButtonsForCurrentState();
+        
+        // Set up an interval to periodically check game state
+        setInterval(() => {
+            this.updateButtonsForCurrentState();
+        }, 500);
+    }
+    
+    // Update buttons based on current game state
+    updateButtonsForCurrentState() {
+        const returnButton = document.getElementById('return-button');
+        if (returnButton) {
+            returnButton.style.display = gameState.isAlienMode ? 'block' : 'none';
+        }
+        
+        // Also update other buttons as needed
+        const bombButton = document.getElementById('bomb-button');
+        if (bombButton) {
+            bombButton.style.display = gameState.isAlienMode ? 'block' : 'none';
+        }
     }
     
     // Setup joystick touch handlers for the joysticks
@@ -465,7 +513,23 @@ class MobileControls {
                     if (!gameState.isAlienMode && !gameState.landedOnPlanet) {
                         attemptLanding();
                     } else if (gameState.landedOnPlanet) {
-                        takeOff();
+                        // This handles both ship take-off and alien returning to ship
+                        if (gameState.isAlienMode) {
+                            if (isNearShip()) {
+                                // First return to ship mode from alien mode
+                                toggleAlienMode();
+                                // Add a small delay before takeoff to allow mode switch to complete
+                                setTimeout(() => {
+                                    takeOff();
+                                }, 200);
+                            } else {
+                                // Show a message that alien needs to return to the ship first
+                                showMessage("RETURN TO SHIP FIRST (USE E KEY NEAR SHIP)", 2000);
+                            }
+                        } else {
+                            // Normal takeoff in ship mode
+                            takeOff();
+                        }
                     }
                 }
                 break;
@@ -483,6 +547,13 @@ class MobileControls {
             case 'placeBomb':
                 if (isPressed && gameState.isAlienMode && gameState.landedOnPlanet && !gameState.landedOnPlanet.hasBomb) {
                     placeBomb();
+                }
+                break;
+            case 'returnToShip':
+                if (isPressed) {
+                    if (gameState.isAlienMode) {
+                        toggleAlienMode();
+                    }
                 }
                 break;
         }
@@ -625,6 +696,9 @@ class MobileControls {
                 <button id="mobile-land" style="padding: 15px; width: 100px;">LAND/TAKE OFF</button>
                 <button id="mobile-beam" style="padding: 15px; width: 100px;">TRACTOR BEAM</button>
             </div>
+            <div id="alien-controls" style="display: none; margin-top: 10px;">
+                <button id="mobile-return" style="padding: 15px; width: 100%; background-color: rgba(0, 100, 255, 0.5); border: 2px solid #0ff; box-shadow: 0 0 10px #0ff;">RETURN TO SHIP</button>
+            </div>
         `;
         
         body.appendChild(fallbackControls);
@@ -669,7 +743,23 @@ class MobileControls {
             if (!gameState.isAlienMode && !gameState.landedOnPlanet) {
                 attemptLanding();
             } else if (gameState.landedOnPlanet) {
-                takeOff();
+                // This handles both ship take-off and alien returning to ship
+                if (gameState.isAlienMode) {
+                    if (isNearShip()) {
+                        // First return to ship mode from alien mode
+                        toggleAlienMode();
+                        // Add a small delay before takeoff to allow mode switch to complete
+                        setTimeout(() => {
+                            takeOff();
+                        }, 200);
+                    } else {
+                        // Show a message that alien needs to return to the ship first
+                        showMessage("RETURN TO SHIP FIRST (USE E KEY NEAR SHIP)", 2000);
+                    }
+                } else {
+                    // Normal takeoff in ship mode
+                    takeOff();
+                }
             }
         });
         
@@ -679,6 +769,20 @@ class MobileControls {
         document.getElementById('mobile-beam').addEventListener('touchend', () => {
             gameState.isTractorBeamActive = false;
         });
+        
+        document.getElementById('mobile-return').addEventListener('touchstart', () => {
+            if (gameState.isAlienMode) {
+                toggleAlienMode();
+            }
+        });
+        
+        // Setup interval to update alien controls visibility
+        setInterval(() => {
+            const alienControls = document.getElementById('alien-controls');
+            if (alienControls) {
+                alienControls.style.display = gameState.isAlienMode ? 'block' : 'none';
+            }
+        }, 500);
         
         showMessage("SIMPLIFIED MOBILE CONTROLS ENABLED", 3000);
     }
