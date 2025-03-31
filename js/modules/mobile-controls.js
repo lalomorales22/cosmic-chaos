@@ -18,8 +18,12 @@ class MobileControls {
         this.joystickSize = 100;
         this.deadzone = 0.2;
         
-        // Check if device is mobile
-        this.checkMobileDevice();
+        // Wait for DOM to be loaded before checking mobile device
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.checkMobileDevice());
+        } else {
+            this.checkMobileDevice();
+        }
     }
     
     // Check if the device is mobile
@@ -28,7 +32,16 @@ class MobileControls {
         
         // Enable mobile controls if on a mobile device
         if (this.isMobileDevice) {
-            this.enable();
+            // Wrap in a try-catch to prevent uncaught exceptions
+            try {
+                // Delay the initialization to ensure DOM is fully loaded
+                setTimeout(() => {
+                    this.enable();
+                }, 500);
+            } catch (error) {
+                console.error('Error enabling mobile controls:', error);
+                showMessage("ERROR ENABLING MOBILE CONTROLS", 2000);
+            }
         }
         
         // Also add window resize listener to handle orientation changes
@@ -43,10 +56,24 @@ class MobileControls {
     enable() {
         if (this.isEnabled) return;
         
+        // Ensure the UI container exists
+        const uiContainer = document.getElementById('ui-container');
+        if (!uiContainer) {
+            console.error('UI container not found. Mobile controls cannot be enabled.');
+            this.createFallbackControls();
+            return;
+        }
+        
         this.isEnabled = true;
-        this.createJoysticks();
-        this.createActionButtons();
-        showMessage("MOBILE CONTROLS ENABLED", 2000);
+        
+        try {
+            this.createJoysticks();
+            this.createActionButtons();
+            showMessage("MOBILE CONTROLS ENABLED", 2000);
+        } catch (error) {
+            console.error('Error creating mobile controls:', error);
+            this.createFallbackControls();
+        }
     }
     
     // Disable mobile controls
@@ -132,10 +159,7 @@ class MobileControls {
         
         uiContainer.appendChild(joysticksContainer);
         
-        // Set up joystick touch handlers
-        this.setupJoystickTouchHandlers();
-        
-        // Store references
+        // Store references BEFORE setting up event handlers
         this.moveJoystick = {
             container: moveJoystickContainer,
             stick: moveJoystick,
@@ -151,6 +175,9 @@ class MobileControls {
             position: { x: 0, y: 0 },
             value: { x: 0, y: 0 }
         };
+        
+        // Set up joystick touch handlers after references are created
+        this.setupJoystickTouchHandlers();
     }
     
     // Create action buttons for mobile
@@ -202,28 +229,39 @@ class MobileControls {
         uiContainer.appendChild(buttonsContainer);
     }
     
-    // Setup touch handlers for the joysticks
+    // Setup joystick touch handlers for the joysticks
     setupJoystickTouchHandlers() {
-        // Left joystick (movement)
-        this.setupJoystickEvents(this.moveJoystick, (x, y) => {
-            // Convert joystick position to input state
-            inputHandler.inputState.moveForward = y < -this.deadzone;
-            inputHandler.inputState.moveBackward = y > this.deadzone;
-            inputHandler.inputState.moveLeft = x < -this.deadzone;
-            inputHandler.inputState.moveRight = x > this.deadzone;
-        });
+        // Only setup if joysticks exist
+        if (this.moveJoystick && this.moveJoystick.container) {
+            // Left joystick (movement)
+            this.setupJoystickEvents(this.moveJoystick, (x, y) => {
+                // Convert joystick position to input state
+                inputHandler.inputState.moveForward = y < -this.deadzone;
+                inputHandler.inputState.moveBackward = y > this.deadzone;
+                inputHandler.inputState.moveLeft = x < -this.deadzone;
+                inputHandler.inputState.moveRight = x > this.deadzone;
+            });
+        }
         
-        // Right joystick (look)
-        this.setupJoystickEvents(this.lookJoystick, (x, y) => {
-            // Convert joystick position to mouse look
-            // Scale to appropriate range
-            inputHandler.inputState.mouseX = x * 0.5; // Reduced sensitivity for better control
-            inputHandler.inputState.mouseY = y * 0.5;
-        });
+        if (this.lookJoystick && this.lookJoystick.container) {
+            // Right joystick (look)
+            this.setupJoystickEvents(this.lookJoystick, (x, y) => {
+                // Convert joystick position to mouse look
+                // Scale to appropriate range
+                inputHandler.inputState.mouseX = x * 0.5; // Reduced sensitivity for better control
+                inputHandler.inputState.mouseY = y * 0.5;
+            });
+        }
     }
     
     // Setup events for a joystick
     setupJoystickEvents(joystick, updateCallback) {
+        // Add null check to prevent errors
+        if (!joystick || !joystick.container || !joystick.stick) {
+            console.warn('Attempted to setup events for invalid joystick');
+            return;
+        }
+        
         const container = joystick.container;
         const stick = joystick.stick;
         
@@ -368,6 +406,9 @@ class MobileControls {
     
     // Reset joystick to center position
     resetJoystick(joystick) {
+        // Add null check
+        if (!joystick || !joystick.stick) return;
+        
         joystick.stick.style.transform = 'translate(-50%, -50%)';
         joystick.value.x = 0;
         joystick.value.y = 0;
@@ -375,11 +416,17 @@ class MobileControls {
     
     // Update joystick positions (e.g., after orientation change)
     updateJoystickPositions() {
+        // Add null checks
         if (!this.moveJoystick || !this.lookJoystick) return;
         
         // Reset sticks to their default positions
-        this.resetJoystick(this.moveJoystick);
-        this.resetJoystick(this.lookJoystick);
+        if (this.moveJoystick && this.moveJoystick.stick) {
+            this.resetJoystick(this.moveJoystick);
+        }
+        
+        if (this.lookJoystick && this.lookJoystick.stick) {
+            this.resetJoystick(this.lookJoystick);
+        }
     }
     
     // Remove joysticks from the DOM
@@ -410,6 +457,100 @@ class MobileControls {
         } else {
             this.enable();
         }
+    }
+    
+    // Create simplified fallback controls if full controls fail
+    createFallbackControls() {
+        console.log('Creating fallback mobile controls');
+        const body = document.body;
+        
+        // Create a simple overlay with instructions
+        const fallbackControls = document.createElement('div');
+        fallbackControls.id = 'fallback-mobile-controls';
+        fallbackControls.style.position = 'fixed';
+        fallbackControls.style.bottom = '10px';
+        fallbackControls.style.left = '10px';
+        fallbackControls.style.right = '10px';
+        fallbackControls.style.padding = '10px';
+        fallbackControls.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        fallbackControls.style.color = '#0ff';
+        fallbackControls.style.border = '1px solid #0ff';
+        fallbackControls.style.borderRadius = '5px';
+        fallbackControls.style.zIndex = '1000';
+        fallbackControls.style.textAlign = 'center';
+        
+        fallbackControls.innerHTML = `
+            <div>MOBILE CONTROLS UNAVAILABLE</div>
+            <div style="margin: 10px 0;">Tap anywhere to simulate keys:</div>
+            <div style="display: flex; justify-content: space-around; margin-top: 10px;">
+                <button id="mobile-move-forward" style="padding: 15px; width: 70px;">W</button>
+            </div>
+            <div style="display: flex; justify-content: space-around; margin: 10px 0;">
+                <button id="mobile-move-left" style="padding: 15px; width: 70px;">A</button>
+                <button id="mobile-move-backward" style="padding: 15px; width: 70px;">S</button>
+                <button id="mobile-move-right" style="padding: 15px; width: 70px;">D</button>
+            </div>
+            <div style="display: flex; justify-content: space-around; margin-top: 5px;">
+                <button id="mobile-boost" style="padding: 15px; width: 100px;">BOOST</button>
+                <button id="mobile-land" style="padding: 15px; width: 100px;">LAND/TAKE OFF</button>
+                <button id="mobile-beam" style="padding: 15px; width: 100px;">TRACTOR BEAM</button>
+            </div>
+        `;
+        
+        body.appendChild(fallbackControls);
+        
+        // Add event listeners to the fallback controls
+        document.getElementById('mobile-move-forward').addEventListener('touchstart', () => {
+            inputHandler.inputState.moveForward = true;
+        });
+        document.getElementById('mobile-move-forward').addEventListener('touchend', () => {
+            inputHandler.inputState.moveForward = false;
+        });
+        
+        document.getElementById('mobile-move-backward').addEventListener('touchstart', () => {
+            inputHandler.inputState.moveBackward = true;
+        });
+        document.getElementById('mobile-move-backward').addEventListener('touchend', () => {
+            inputHandler.inputState.moveBackward = false;
+        });
+        
+        document.getElementById('mobile-move-left').addEventListener('touchstart', () => {
+            inputHandler.inputState.moveLeft = true;
+        });
+        document.getElementById('mobile-move-left').addEventListener('touchend', () => {
+            inputHandler.inputState.moveLeft = false;
+        });
+        
+        document.getElementById('mobile-move-right').addEventListener('touchstart', () => {
+            inputHandler.inputState.moveRight = true;
+        });
+        document.getElementById('mobile-move-right').addEventListener('touchend', () => {
+            inputHandler.inputState.moveRight = false;
+        });
+        
+        document.getElementById('mobile-boost').addEventListener('touchstart', () => {
+            inputHandler.inputState.boost = true;
+        });
+        document.getElementById('mobile-boost').addEventListener('touchend', () => {
+            inputHandler.inputState.boost = false;
+        });
+        
+        document.getElementById('mobile-land').addEventListener('touchstart', () => {
+            if (!gameState.isAlienMode && !gameState.landedOnPlanet) {
+                attemptLanding();
+            } else if (gameState.landedOnPlanet) {
+                takeOff();
+            }
+        });
+        
+        document.getElementById('mobile-beam').addEventListener('touchstart', () => {
+            gameState.isTractorBeamActive = true;
+        });
+        document.getElementById('mobile-beam').addEventListener('touchend', () => {
+            gameState.isTractorBeamActive = false;
+        });
+        
+        showMessage("SIMPLIFIED MOBILE CONTROLS ENABLED", 3000);
     }
 }
 
