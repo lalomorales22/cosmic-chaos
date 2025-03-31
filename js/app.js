@@ -3,16 +3,21 @@
  * Main application entry point
  */
 
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+import { createStars } from './modules/star-generator.js';
+import * as planetGenerator from './modules/planet-generator.js';
+import { updateShipControls } from './modules/ship-controls.js';
+import { updateAlienControls } from './modules/alien-controls.js';
+import { createWormhole } from './modules/wormhole.js';
 import gameState from './modules/game-state.js';
 import inputHandler from './modules/input-handler.js';
-import * as ui from './modules/ui.js';
-import * as network from './modules/network.js';
 import * as portal from './modules/portal.js';
-import Config from './config.js';
-import { updateShipControls, updateAlienControls } from './modules/player.js';
-import * as planetGenerator from './modules/planet-generator.js';
-import { showMessage, createExplosionFlash } from './modules/ui.js';
+import * as ui from './modules/ui.js';
 import mobileControls from './modules/mobile-controls.js';
+import * as network from './modules/network.js';
+import { createPlayerShip } from './modules/player.js';
+import { showMessage, createExplosionFlash } from './modules/ui.js';
+import Config from './config.js';
 
 // Main application class
 class GameApp {
@@ -549,6 +554,69 @@ class GameApp {
         });
         
         uiContainer.appendChild(toggleButton);
+        
+        // Add toggle screen button
+        this.addToggleScreenButton();
+    }
+    
+    // Add toggle screen button
+    addToggleScreenButton() {
+        const uiContainer = document.getElementById('ui-container');
+        
+        // Create toggle screen button
+        const toggleScreenButton = document.createElement('button');
+        toggleScreenButton.id = 'toggle-screen-button';
+        toggleScreenButton.textContent = 'TOGGLE SCREEN';
+        toggleScreenButton.style.position = 'absolute';
+        toggleScreenButton.style.top = '530px'; // Position below mobile controls toggle
+        toggleScreenButton.style.right = '20px';
+        toggleScreenButton.style.padding = '5px 10px';
+        toggleScreenButton.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        toggleScreenButton.style.color = '#0ff';
+        toggleScreenButton.style.border = '1px solid #0ff';
+        toggleScreenButton.style.borderRadius = '5px';
+        toggleScreenButton.style.cursor = 'pointer';
+        toggleScreenButton.style.zIndex = '1000';
+        toggleScreenButton.style.pointerEvents = 'auto';
+        
+        toggleScreenButton.addEventListener('click', () => {
+            this.toggleScreenWidgets();
+        });
+        
+        uiContainer.appendChild(toggleScreenButton);
+    }
+    
+    // Toggle visibility of screen widgets except for minimap and mobile controls
+    toggleScreenWidgets() {
+        // Elements to toggle
+        const elementsToToggle = [
+            'hud',
+            'boost-meter',
+            'instructions',
+            'alien-symbols',
+            'planet-info',
+            'orientation-indicator'
+        ];
+        
+        // Flag to track if widgets are visible or hidden
+        if (!gameState.screenWidgetsHidden) {
+            gameState.screenWidgetsHidden = true;
+        } else {
+            gameState.screenWidgetsHidden = false;
+        }
+        
+        // Toggle visibility of each element
+        elementsToToggle.forEach(elementId => {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.style.display = gameState.screenWidgetsHidden ? 'none' : '';
+            }
+        });
+        
+        // Display feedback message
+        const message = gameState.screenWidgetsHidden ? 
+            'SCREEN WIDGETS HIDDEN' : 'SCREEN WIDGETS VISIBLE';
+        showMessage(message, 2000);
     }
     
     // Hide tutorial
